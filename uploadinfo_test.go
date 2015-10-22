@@ -51,6 +51,9 @@ func TestUploadAndGet(t *testing.T) {
 	const (
 		namespace = "sandbox-tmp"
 		keyPrefix = "noxiouz"
+
+		rangeStart = 2
+		rangeEnd   = 4
 	)
 	body := []byte("TESTBLOB")
 
@@ -68,10 +71,18 @@ func TestUploadAndGet(t *testing.T) {
 		ioutil.NopCloser(bytes.NewReader(body)))
 
 	if !assert.NoError(t, err) {
-		t.Fatal()
+		t.Fatal("unable to upload")
 	}
 
 	cfile, err := cli.GetFile(namespace, info.Key)
 	assert.NoError(t, err)
 	assert.Equal(t, body, cfile)
+
+	cfile, err = cli.GetFile(namespace, info.Key, rangeStart)
+	assert.NoError(t, err)
+	assert.Equal(t, body[rangeStart:], cfile)
+
+	cfile, err = cli.GetFile(namespace, info.Key, rangeStart, rangeEnd)
+	assert.NoError(t, err)
+	assert.Equal(t, body[rangeStart:rangeEnd+1], cfile)
 }

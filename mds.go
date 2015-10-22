@@ -91,7 +91,7 @@ func (m *Client) Upload(namespace string, filename string, body io.ReadCloser) (
 
 // Get reads a given key from storage and return ReadCloser to body.
 // User is repsonsible for closing returned ReadCloser
-func (m *Client) Get(namespace, key string) (io.ReadCloser, error) {
+func (m *Client) Get(namespace, key string, Range ...uint64) (io.ReadCloser, error) {
 	urlStr := m.readURL(namespace, key)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
@@ -99,13 +99,23 @@ func (m *Client) Get(namespace, key string) (io.ReadCloser, error) {
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
+	switch len(Range) {
+	case 0:
+	case 1:
+		req.Header.Add("Range", fmt.Sprintf("bytes=%d-", Range[0]))
+	case 2:
+		req.Header.Add("Range", fmt.Sprintf("bytes=%d-%d", Range[0], Range[1]))
+	default:
+		return nil, fmt.Errorf("Invalid range")
+	}
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	switch resp.StatusCode {
-	case http.StatusOK:
+	case http.StatusOK, http.StatusPartialContent:
 		return resp.Body, nil
 	default:
 		return nil, fmt.Errorf("[%s]", resp.Status)
@@ -113,8 +123,8 @@ func (m *Client) Get(namespace, key string) (io.ReadCloser, error) {
 }
 
 // GetFile like Get but returns bytes
-func (m *Client) GetFile(namespace, key string) ([]byte, error) {
-	output, err := m.Get(namespace, key)
+func (m *Client) GetFile(namespace, key string, Range ...uint64) ([]byte, error) {
+	output, err := m.Get(namespace, key, Range...)
 	if err != nil {
 		return nil, err
 	}
