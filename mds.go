@@ -76,6 +76,10 @@ func (m *Client) Upload(namespace string, filename string, body io.ReadCloser) (
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
+	case http.StatusForbidden:
+		return nil, fmt.Errorf("[%s] Update is prohibited for your namespace", resp.Status)
+	case 507: // 507 Insufficient Storage
+		return nil, fmt.Errorf("[%s] No space left in storage", resp.Status)
 	case http.StatusOK:
 	default:
 		return nil, fmt.Errorf("[%s]", resp.Status)
@@ -117,6 +121,10 @@ func (m *Client) Get(namespace, key string, Range ...uint64) (io.ReadCloser, err
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
 		return resp.Body, nil
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("[%s] No such key", resp.Status)
+	case http.StatusGone, http.StatusNotAcceptable:
+		return nil, fmt.Errorf("[%s] No such namespace", resp.Status)
 	default:
 		return nil, fmt.Errorf("[%s]", resp.Status)
 	}
