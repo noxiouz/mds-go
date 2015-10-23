@@ -67,6 +67,11 @@ func TestUploadAndGet(t *testing.T) {
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
+
+	if !assert.NoError(t, cli.Ping()) {
+		t.FailNow()
+	}
+
 	info, err := cli.Upload(namespace, fmt.Sprintf("%s-%d", keyPrefix, time.Now().Nanosecond()),
 		ioutil.NopCloser(bytes.NewReader(body)))
 
@@ -85,4 +90,10 @@ func TestUploadAndGet(t *testing.T) {
 	cfile, err = cli.GetFile(namespace, info.Key, rangeStart, rangeEnd)
 	assert.NoError(t, err)
 	assert.Equal(t, body[rangeStart:rangeEnd+1], cfile)
+
+	err = cli.Delete(namespace, info.Key)
+	assert.NoError(t, err)
+
+	err = cli.Delete(namespace, info.Key)
+	assert.EqualError(t, err, "[404 Not Found] No such key")
 }

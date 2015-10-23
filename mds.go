@@ -60,6 +60,14 @@ func (m *Client) readURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
 
+func (m *Client) deleteURL(namespace, filename string) string {
+	return fmt.Sprintf("http://%s:%d/delete-%s/%s", m.Host, m.UploadPort, namespace, filename)
+}
+
+func (m *Client) pingUrl() string {
+	return fmt.Sprintf("http://%s:%d/ping", m.Host, m.ReadPort)
+}
+
 // Upload stores provided data to a specified namespace. Returns information about upload.
 func (m *Client) Upload(namespace string, filename string, body io.ReadCloser) (*UploadInfo, error) {
 	urlStr := m.uploadURL(namespace, filename)
@@ -139,4 +147,50 @@ func (m *Client) GetFile(namespace, key string, Range ...uint64) ([]byte, error)
 	defer output.Close()
 
 	return ioutil.ReadAll(output)
+}
+
+// Delete deletes key from na,espace
+func (m *Client) Delete(namespace, key string) error {
+	urlStr := m.deleteURL(namespace, key)
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", m.AuthHeader)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusNotFound:
+		return fmt.Errorf("[%s] No such key", resp.Status)
+	default:
+		return fmt.Errorf("[%s]", resp.Status)
+	}
+}
+
+// Ping checks availability of proxy
+func (m *Client) Ping() error {
+	urlStr := m.pingUrl()
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", m.AuthHeader)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf("[%s]", resp.Status)
+	}
 }
