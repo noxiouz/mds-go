@@ -41,6 +41,11 @@ type DownloadInfo struct {
 	Sign    string   `xml:"s"`
 }
 
+// URL constructs a direct link from DownloadInfo
+func (d *DownloadInfo) URL() string {
+	return fmt.Sprintf("http://%s%s?ts=%ssign=%s", d.Host, d.Path, d.TS, d.Sign)
+}
+
 // Config represents configuration for the client
 type Config struct {
 	Host       string
@@ -229,6 +234,8 @@ func (m *Client) DownloadInfo(namespace, key string) (*DownloadInfo, error) {
 	switch resp.StatusCode {
 	case http.StatusGone:
 		return nil, fmt.Errorf("[%s] Seems DownloadInfo is disabled for the namesapce", resp.Status)
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("[%s] No such key", resp.Status)
 	case http.StatusOK:
 	default:
 		return nil, fmt.Errorf("[%s]", resp.Status)
