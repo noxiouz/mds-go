@@ -27,8 +27,18 @@ type UploadInfo struct {
 	Written int `xml:"written"`
 }
 
-func decodeUploadInfo(result *UploadInfo, body io.Reader) error {
+func decodeXML(result interface{}, body io.Reader) error {
 	return xml.NewDecoder(body).Decode(result)
+}
+
+// DownloadInfo describes a direct link to a file
+type DownloadInfo struct {
+	XMLName xml.Name `xml:"download-info"`
+	Host    string   `xml:"host"`
+	Path    string   `xml:"path"`
+	TS      string   `xml:"ts"`
+	Region  int      `xml:"region"`
+	Sign    string   `xml:"s"`
 }
 
 // Config represents configuration for the client
@@ -64,8 +74,12 @@ func (m *Client) deleteURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/delete-%s/%s", m.Host, m.UploadPort, namespace, filename)
 }
 
-func (m *Client) pingUrl() string {
+func (m *Client) pingURL() string {
 	return fmt.Sprintf("http://%s:%d/ping", m.Host, m.ReadPort)
+}
+
+func (m *Client) downloadinfoURL(namespace, filename string) string {
+	return fmt.Sprintf("http://%s:%d/downloadinfo-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
 
 // Upload stores provided data to a specified namespace. Returns information about upload.
@@ -94,7 +108,7 @@ func (m *Client) Upload(namespace string, filename string, body io.ReadCloser) (
 	}
 
 	var info UploadInfo
-	if err := decodeUploadInfo(&info, resp.Body); err != nil {
+	if err := decodeXML(&info, resp.Body); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +189,7 @@ func (m *Client) Delete(namespace, key string) error {
 
 // Ping checks availability of proxy
 func (m *Client) Ping() error {
-	urlStr := m.pingUrl()
+	urlStr := m.pingURL()
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return err
@@ -193,4 +207,37 @@ func (m *Client) Ping() error {
 	default:
 		return fmt.Errorf("[%s]", resp.Status)
 	}
+}
+
+// DownloadInfo retrieves an information about direct link to a file
+// if it's available
+func (m *Client) DownloadInfo(namespace, key string) (*DownloadInfo, error) {
+	urlStr := m.downloadinfoURL(namespace, key)
+
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", m.AuthHeader)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusGone:
+		return nil, fmt.Errorf("[%s] Seems DownloadInfo is disabled for the namesapce", resp.Status)
+	case http.StatusOK:
+	default:
+		return nil, fmt.Errorf("[%s]", resp.Status)
+	}
+
+	var info DownloadInfo
+	if err := decodeXML(&info, resp.Body); err != nil {
+		return nil, err
+	}
+
+	return &info, nil
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDecode(t *testing.T) {
+func TestDecodeUploadInfo(t *testing.T) {
 	body := []byte(`<?xml version="1.0" encoding="utf-8"?>
 <post obj="sandbox-tmp.file1" id="0:48f22774edb9...7727258a3cee" groups="2" size="4" key="3402/file1">
 <complete addr="192.168.1.1:1025" path="/srv/storage/47/1/data-0.0" group="4643" status="0"/>
@@ -18,7 +18,7 @@ func TestDecode(t *testing.T) {
 <written>2</written>
 </post>`)
 	var info UploadInfo
-	if err := decodeUploadInfo(&info, bytes.NewReader(body)); err != nil {
+	if err := decodeXML(&info, bytes.NewReader(body)); err != nil {
 		t.Fatalf("unable to decode %+v", err)
 	}
 
@@ -45,6 +45,27 @@ func TestDecode(t *testing.T) {
 	assert.Equal(t, 0, compl1.Status)
 
 	assert.Equal(t, 2, info.Written)
+}
+
+func TestDecodeDirectURLInfo(t *testing.T) {
+	body := []byte(`<?xml version="1.0" encoding="utf-8"?>
+<download-info>
+	<host>storage-direct.hosts.net</host>
+	<path>/books-internal/21/2/data-0.1:42968596189:2077462</path>
+	<ts>50b5c7ad2accf</ts>
+	<region>-1</region>
+	<s>d4befea37cf3ae9712775c26a9d491fd067a2932fe4b5142ac781f2cc379f11a</s>
+</download-info>`)
+	var info DownloadInfo
+	if err := decodeXML(&info, bytes.NewReader(body)); err != nil {
+		t.Fatalf("unable to decode %+v", err)
+	}
+
+	assert.Equal(t, "storage-direct.hosts.net", info.Host)
+	assert.Equal(t, "/books-internal/21/2/data-0.1:42968596189:2077462", info.Path)
+	assert.Equal(t, "50b5c7ad2accf", info.TS)
+	assert.Equal(t, -1, info.Region)
+	assert.Equal(t, "d4befea37cf3ae9712775c26a9d491fd067a2932fe4b5142ac781f2cc379f11a", info.Sign)
 }
 
 func TestUploadAndGet(t *testing.T) {
@@ -86,6 +107,10 @@ func TestUploadAndGet(t *testing.T) {
 	cfile, err = cli.GetFile(namespace, info.Key, rangeStart)
 	assert.NoError(t, err)
 	assert.Equal(t, body[rangeStart:], cfile)
+
+	downloadInfo, err := cli.DownloadInfo(namespace, info.Key)
+	assert.NoError(t, err)
+	t.Log(downloadInfo)
 
 	cfile, err = cli.GetFile(namespace, info.Key, rangeStart, rangeEnd)
 	assert.NoError(t, err)
