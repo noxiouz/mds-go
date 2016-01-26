@@ -181,6 +181,7 @@ func (m *Client) Delete(namespace, key string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
