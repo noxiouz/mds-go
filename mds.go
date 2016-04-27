@@ -71,7 +71,8 @@ func (m *Client) uploadURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/upload-%s/%s", m.Host, m.UploadPort, namespace, filename)
 }
 
-func (m *Client) readURL(namespace, filename string) string {
+// ReadURL returns an URL which could be used to get data
+func (m *Client) ReadURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
 
@@ -123,7 +124,7 @@ func (m *Client) Upload(namespace string, filename string, body io.ReadCloser) (
 // Get reads a given key from storage and return ReadCloser to body.
 // User is repsonsible for closing returned ReadCloser
 func (m *Client) Get(namespace, key string, Range ...uint64) (io.ReadCloser, error) {
-	urlStr := m.readURL(namespace, key)
+	urlStr := m.ReadURL(namespace, key)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return nil, err
