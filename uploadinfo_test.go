@@ -3,7 +3,6 @@ package mds
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -93,9 +92,7 @@ func TestUploadAndGet(t *testing.T) {
 		t.FailNow()
 	}
 
-	info, err := cli.Upload(namespace, fmt.Sprintf("%s-%d", keyPrefix, time.Now().Nanosecond()),
-		ioutil.NopCloser(bytes.NewReader(body)))
-
+	info, err := cli.Upload(namespace, fmt.Sprintf("%s-%d", keyPrefix, time.Now().Nanosecond()), int64(len(body)), bytes.NewReader(body))
 	if !assert.NoError(t, err) {
 		t.Fatal("unable to upload")
 	}

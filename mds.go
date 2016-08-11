@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 // UploadInfo describes result of upload
@@ -89,13 +90,17 @@ func (m *Client) downloadinfoURL(namespace, filename string) string {
 }
 
 // Upload stores provided data to a specified namespace. Returns information about upload.
-func (m *Client) Upload(namespace string, filename string, body io.ReadCloser) (*UploadInfo, error) {
+func (m *Client) Upload(namespace string, filename string, size int64, body io.Reader) (*UploadInfo, error) {
 	urlStr := m.uploadURL(namespace, filename)
 	req, err := http.NewRequest("POST", urlStr, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
+	if req.ContentLength == 0 {
+		req.ContentLength = size
+	}
+	req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
