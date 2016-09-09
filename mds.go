@@ -59,12 +59,20 @@ type Config struct {
 // Client works with MDS
 type Client struct {
 	Config
+
+	client *http.Client
 }
 
 // NewClient creates a client to MDS
-func NewClient(config Config) (*Client, error) {
+func NewClient(config Config, client *http.Client) (*Client, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
+
 	return &Client{
 		Config: config,
+
+		client: client,
 	}, nil
 }
 
@@ -102,7 +110,7 @@ func (m *Client) Upload(namespace string, filename string, size int64, body io.R
 	}
 	req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := m.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +154,7 @@ func (m *Client) Get(namespace, key string, Range ...uint64) (io.ReadCloser, err
 		return nil, fmt.Errorf("Invalid range")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := m.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +191,7 @@ func (m *Client) Delete(namespace, key string) error {
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := m.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -208,7 +216,7 @@ func (m *Client) Ping() error {
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := m.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -232,7 +240,7 @@ func (m *Client) DownloadInfo(namespace, key string) (*DownloadInfo, error) {
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := m.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -82,7 +82,7 @@ func TestUploadAndGet(t *testing.T) {
 		UploadPort: 1111,
 		ReadPort:   80,
 		AuthHeader: "Basic c2FuZGJveC10bXA6YjUyZDVkZjk0ZDA0NTU2MTRiZDZmOWI3NDA3Mzk0OWI=",
-	})
+	}, nil)
 
 	if !assert.NoError(t, err) {
 		t.FailNow()
