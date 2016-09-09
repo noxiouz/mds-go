@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"golang.org/x/net/context"
 )
 
 // UploadInfo describes result of upload
@@ -98,7 +100,7 @@ func (m *Client) downloadinfoURL(namespace, filename string) string {
 }
 
 // Upload stores provided data to a specified namespace. Returns information about upload.
-func (m *Client) Upload(namespace string, filename string, size int64, body io.Reader) (*UploadInfo, error) {
+func (m *Client) Upload(ctx context.Context, namespace string, filename string, size int64, body io.Reader) (*UploadInfo, error) {
 	urlStr := m.uploadURL(namespace, filename)
 	req, err := http.NewRequest("POST", urlStr, body)
 	if err != nil {
@@ -136,7 +138,7 @@ func (m *Client) Upload(namespace string, filename string, size int64, body io.R
 
 // Get reads a given key from storage and return ReadCloser to body.
 // User is repsonsible for closing returned ReadCloser
-func (m *Client) Get(namespace, key string, Range ...uint64) (io.ReadCloser, error) {
+func (m *Client) Get(ctx context.Context, namespace, key string, Range ...uint64) (io.ReadCloser, error) {
 	urlStr := m.ReadURL(namespace, key)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
@@ -172,8 +174,8 @@ func (m *Client) Get(namespace, key string, Range ...uint64) (io.ReadCloser, err
 }
 
 // GetFile like Get but returns bytes
-func (m *Client) GetFile(namespace, key string, Range ...uint64) ([]byte, error) {
-	output, err := m.Get(namespace, key, Range...)
+func (m *Client) GetFile(ctx context.Context, namespace, key string, Range ...uint64) ([]byte, error) {
+	output, err := m.Get(ctx, namespace, key, Range...)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +185,7 @@ func (m *Client) GetFile(namespace, key string, Range ...uint64) ([]byte, error)
 }
 
 // Delete deletes key from na,espace
-func (m *Client) Delete(namespace, key string) error {
+func (m *Client) Delete(ctx context.Context, namespace, key string) error {
 	urlStr := m.deleteURL(namespace, key)
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
@@ -208,7 +210,7 @@ func (m *Client) Delete(namespace, key string) error {
 }
 
 // Ping checks availability of proxy
-func (m *Client) Ping() error {
+func (m *Client) Ping(ctx context.Context) error {
 	urlStr := m.pingURL()
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
@@ -231,7 +233,7 @@ func (m *Client) Ping() error {
 
 // DownloadInfo retrieves an information about direct link to a file
 // if it's available
-func (m *Client) DownloadInfo(namespace, key string) (*DownloadInfo, error) {
+func (m *Client) DownloadInfo(ctx context.Context, namespace, key string) (*DownloadInfo, error) {
 	urlStr := m.downloadinfoURL(namespace, key)
 
 	req, err := http.NewRequest("GET", urlStr, nil)

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestDecodeUploadInfo(t *testing.T) {
@@ -88,34 +89,36 @@ func TestUploadAndGet(t *testing.T) {
 		t.FailNow()
 	}
 
-	if !assert.NoError(t, cli.Ping()) {
+	ctx := context.Background()
+
+	if !assert.NoError(t, cli.Ping(ctx)) {
 		t.FailNow()
 	}
 
-	info, err := cli.Upload(namespace, fmt.Sprintf("%s-%d", keyPrefix, time.Now().Nanosecond()), int64(len(body)), bytes.NewReader(body))
+	info, err := cli.Upload(ctx, namespace, fmt.Sprintf("%s-%d", keyPrefix, time.Now().Nanosecond()), int64(len(body)), bytes.NewReader(body))
 	if !assert.NoError(t, err) {
 		t.Fatal("unable to upload")
 	}
 
-	cfile, err := cli.GetFile(namespace, info.Key)
+	cfile, err := cli.GetFile(ctx, namespace, info.Key)
 	assert.NoError(t, err)
 	assert.Equal(t, body, cfile)
 
-	cfile, err = cli.GetFile(namespace, info.Key, rangeStart)
+	cfile, err = cli.GetFile(ctx, namespace, info.Key, rangeStart)
 	assert.NoError(t, err)
 	assert.Equal(t, body[rangeStart:], cfile)
 
-	downloadInfo, err := cli.DownloadInfo(namespace, info.Key)
+	downloadInfo, err := cli.DownloadInfo(ctx, namespace, info.Key)
 	assert.NoError(t, err)
 	t.Log(downloadInfo)
 
-	cfile, err = cli.GetFile(namespace, info.Key, rangeStart, rangeEnd)
+	cfile, err = cli.GetFile(ctx, namespace, info.Key, rangeStart, rangeEnd)
 	assert.NoError(t, err)
 	assert.Equal(t, body[rangeStart:rangeEnd+1], cfile)
 
-	err = cli.Delete(namespace, info.Key)
+	err = cli.Delete(ctx, namespace, info.Key)
 	assert.NoError(t, err)
 
-	err = cli.Delete(namespace, info.Key)
+	err = cli.Delete(ctx, namespace, info.Key)
 	assert.EqualError(t, err, "[404 Not Found] No such key")
 }
