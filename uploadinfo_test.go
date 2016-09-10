@@ -17,7 +17,7 @@ func TestDecodeUploadInfo(t *testing.T) {
 <written>2</written>
 </post>`)
 	var info UploadInfo
-	if err := decodeXML(&info, bytes.NewReader(body)); err != nil {
+	if err := decodeXML(bytes.NewReader(body), &info); err != nil {
 		t.Fatalf("unable to decode %+v", err)
 	}
 
@@ -56,7 +56,7 @@ func TestDecodeDirectURLInfo(t *testing.T) {
 	<s>d4befea37cf3ae9712775c26a9d491fd067a2932fe4b5142ac781f2cc379f11a</s>
 </download-info>`)
 	var info DownloadInfo
-	if err := decodeXML(&info, bytes.NewReader(body)); err != nil {
+	if err := decodeXML(bytes.NewReader(body), &info); err != nil {
 		t.Fatalf("unable to decode %+v", err)
 	}
 
@@ -117,5 +117,5 @@ func TestUploadAndGet(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = cli.Delete(namespace, info.Key)
-	assert.EqualError(t, err, "[404 Not Found] No such key")
+	assert.EqualError(t, err, fmt.Sprintf("no such key %s: 404 Not Found", info.Key))
 }
