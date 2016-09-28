@@ -217,18 +217,15 @@ func (m *Client) Ping(ctx context.Context) error {
 		return err
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
-
 	resp, err := m.client.Do(req)
 	if err != nil {
 		return err
 	}
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return nil
-	default:
-		return fmt.Errorf("[%s]", resp.Status)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return newOperationError(pingScope, resp)
 	}
+	return nil
 }
 
 // DownloadInfo retrieves an information about direct link to a file,
