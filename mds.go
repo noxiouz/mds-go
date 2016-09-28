@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"golang.org/x/net/context"
 )
@@ -107,10 +106,9 @@ func (m *Client) Upload(ctx context.Context, namespace string, filename string, 
 		return nil, err
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
-	if req.ContentLength == 0 {
+	if req.ContentLength <= 0 {
 		req.ContentLength = size
 	}
-	req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
 
 	resp, err := m.client.Do(req)
 	if err != nil {
@@ -118,14 +116,12 @@ func (m *Client) Upload(ctx context.Context, namespace string, filename string, 
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusForbidden:
-		return nil, fmt.Errorf("[%s] Update is prohibited for your namespace", resp.Status)
-	case 507: // 507 Insufficient Storage
-		return nil, fmt.Errorf("[%s] No space left in storage", resp.Status)
-	case http.StatusOK:
-	default:
-		return nil, fmt.Errorf("[%s]", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		scope := ErrorMethodScope{
+			Method: "upload",
+			URL:    urlStr,
+		}
+		return nil, newMethodError(scope, resp)
 	}
 
 	var info UploadInfo
@@ -161,16 +157,16 @@ func (m *Client) Get(ctx context.Context, namespace, key string, Range ...uint64
 		return nil, err
 	}
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusPartialContent:
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
 		return resp.Body, nil
-	case http.StatusNotFound:
-		return nil, fmt.Errorf("[%s] No such key", resp.Status)
-	case http.StatusGone, http.StatusNotAcceptable:
-		return nil, fmt.Errorf("[%s] No such namespace", resp.Status)
-	default:
-		return nil, fmt.Errorf("[%s]", resp.Status)
 	}
+
+	defer resp.Body.Close()
+	scope := ErrorMethodScope{
+		Method: "get",
+		URL:    urlStr,
+	}
+	return nil, newMethodError(scope, resp)
 }
 
 // GetFile is like Get but returns bytes.
@@ -199,14 +195,15 @@ func (m *Client) Delete(ctx context.Context, namespace, key string) error {
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return nil
-	case http.StatusNotFound:
-		return fmt.Errorf("[%s] No such key", resp.Status)
-	default:
-		return fmt.Errorf("[%s]", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		scope := ErrorMethodScope{
+			Method: "delete",
+			URL:    urlStr,
+		}
+		return newMethodError(scope, resp)
 	}
+
+	return nil
 }
 
 // Ping checks availability of proxy
@@ -217,18 +214,20 @@ func (m *Client) Ping(ctx context.Context) error {
 		return err
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
-
 	resp, err := m.client.Do(req)
 	if err != nil {
 		return err
 	}
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return nil
-	default:
-		return fmt.Errorf("[%s]", resp.Status)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		scope := ErrorMethodScope{
+			Method: "ping",
+			URL:    urlStr,
+		}
+		return newMethodError(scope, resp)
 	}
+	return nil
 }
 
 // DownloadInfo retrieves an information about direct link to a file,
@@ -248,14 +247,12 @@ func (m *Client) DownloadInfo(ctx context.Context, namespace, key string) (*Down
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusGone:
-		return nil, fmt.Errorf("[%s] Seems DownloadInfo is disabled for the namesapce", resp.Status)
-	case http.StatusNotFound:
-		return nil, fmt.Errorf("[%s] No such key", resp.Status)
-	case http.StatusOK:
-	default:
-		return nil, fmt.Errorf("[%s]", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		scope := ErrorMethodScope{
+			Method: "downloadInfo",
+			URL:    urlStr,
+		}
+		return nil, newMethodError(scope, resp)
 	}
 
 	var info DownloadInfo

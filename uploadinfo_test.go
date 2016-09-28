@@ -3,6 +3,7 @@ package mds
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -108,9 +109,10 @@ func TestUploadAndGet(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, body[rangeStart:], cfile)
 
-	downloadInfo, err := cli.DownloadInfo(ctx, namespace, info.Key)
-	assert.NoError(t, err)
-	t.Log(downloadInfo)
+	_, err = cli.DownloadInfo(ctx, namespace, info.Key)
+	mErr, ok := err.(MethodError)
+	assert.True(t, ok)
+	assert.Equal(t, mErr.Status, fmt.Sprintf("%d %s", http.StatusGone, http.StatusText(http.StatusGone)))
 
 	cfile, err = cli.GetFile(ctx, namespace, info.Key, rangeStart, rangeEnd)
 	assert.NoError(t, err)
@@ -120,5 +122,8 @@ func TestUploadAndGet(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = cli.Delete(ctx, namespace, info.Key)
-	assert.EqualError(t, err, "[404 Not Found] No such key")
+
+	mErr, ok = err.(MethodError)
+	assert.True(t, ok)
+	assert.Equal(t, mErr.Status, fmt.Sprintf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound)))
 }
