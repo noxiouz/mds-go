@@ -46,7 +46,7 @@ func (err MethodError) Error() string {
 }
 
 func newMethodError(scope ErrorMethodScope, resp *http.Response) error {
-	err := &MethodError{
+	err := MethodError{
 		ErrorMethodScope:   scope,
 		ErrorResponseScope: newResponseScope(resp),
 	}
