@@ -82,7 +82,7 @@ func (m *Client) uploadURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/upload-%s/%s", m.Host, m.UploadPort, namespace, filename)
 }
 
-// ReadURL returns an URL which could be used to get data
+// ReadURL returns a URL which could be used to get data.
 func (m *Client) ReadURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
@@ -137,7 +137,7 @@ func (m *Client) Upload(ctx context.Context, namespace string, filename string, 
 }
 
 // Get reads a given key from storage and return ReadCloser to body.
-// User is repsonsible for closing returned ReadCloser
+// User is responsible for closing returned ReadCloser.
 func (m *Client) Get(ctx context.Context, namespace, key string, Range ...uint64) (io.ReadCloser, error) {
 	urlStr := m.ReadURL(namespace, key)
 	req, err := http.NewRequest("GET", urlStr, nil)
@@ -173,7 +173,7 @@ func (m *Client) Get(ctx context.Context, namespace, key string, Range ...uint64
 	}
 }
 
-// GetFile like Get but returns bytes
+// GetFile is like Get but returns bytes.
 func (m *Client) GetFile(ctx context.Context, namespace, key string, Range ...uint64) ([]byte, error) {
 	output, err := m.Get(ctx, namespace, key, Range...)
 	if err != nil {
@@ -184,7 +184,7 @@ func (m *Client) GetFile(ctx context.Context, namespace, key string, Range ...ui
 	return ioutil.ReadAll(output)
 }
 
-// Delete deletes key from na,espace
+// Delete deletes key from namespace.
 func (m *Client) Delete(ctx context.Context, namespace, key string) error {
 	urlStr := m.deleteURL(namespace, key)
 	req, err := http.NewRequest("GET", urlStr, nil)
@@ -231,8 +231,8 @@ func (m *Client) Ping(ctx context.Context) error {
 	}
 }
 
-// DownloadInfo retrieves an information about direct link to a file
-// if it's available
+// DownloadInfo retrieves an information about direct link to a file,
+// if it's available.
 func (m *Client) DownloadInfo(ctx context.Context, namespace, key string) (*DownloadInfo, error) {
 	urlStr := m.downloadinfoURL(namespace, key)
 
