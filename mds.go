@@ -98,6 +98,36 @@ func (m *Client) downloadinfoURL(namespace, filename string) string {
 	return fmt.Sprintf("http://%s:%d/downloadinfo-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
 
+func (m *Client) getRealURL() string {
+	return fmt.Sprintf("http://%s:%d/hostname", m.Host, m.UploadPort)
+}
+
+func (m *Client) GetReal(ctx context.Context) (string, error) {
+	urlStr := m.getRealURL()
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Authorization", m.AuthHeader)
+
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		b, err := ioutil.ReadAll(resp.Body)
+		return string(b), err
+	}
+
+	scope := ErrorMethodScope{
+		Method: "getReal",
+		URL:    urlStr,
+	}
+	return "", newMethodError(scope, resp)
+}
+
 // Upload stores provided data to a specified namespace. Returns information about upload.
 func (m *Client) Upload(ctx context.Context, namespace string, filename string, size int64, body io.Reader) (*UploadInfo, error) {
 	urlStr := m.uploadURL(namespace, filename)
