@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 // UploadInfo describes result of upload
@@ -110,7 +111,7 @@ func (m *Client) GetReal(ctx context.Context) (string, error) {
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
-	resp, err := m.client.Do(req)
+	resp, err := ctxhttp.Do(ctx, m.client, req)
 	if err != nil {
 		return "", err
 	}
@@ -140,7 +141,7 @@ func (m *Client) Upload(ctx context.Context, namespace string, filename string, 
 		req.ContentLength = size
 	}
 
-	resp, err := m.client.Do(req)
+	resp, err := ctxhttp.Do(ctx, m.client, req)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +183,7 @@ func (m *Client) Get(ctx context.Context, namespace, key string, Range ...uint64
 		return nil, fmt.Errorf("Invalid range")
 	}
 
-	resp, err := m.client.Do(req)
+	resp, err := ctxhttp.Do(ctx, m.client, req)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +220,7 @@ func (m *Client) Delete(ctx context.Context, namespace, key string) error {
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
-	resp, err := m.client.Do(req)
+	resp, err := ctxhttp.Do(ctx, m.client, req)
 	if err != nil {
 		return err
 	}
@@ -244,7 +245,7 @@ func (m *Client) Ping(ctx context.Context) error {
 		return err
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
-	resp, err := m.client.Do(req)
+	resp, err := ctxhttp.Do(ctx, m.client, req)
 	if err != nil {
 		return err
 	}
@@ -271,7 +272,7 @@ func (m *Client) DownloadInfo(ctx context.Context, namespace, key string) (*Down
 	}
 	req.Header.Add("Authorization", m.AuthHeader)
 
-	resp, err := m.client.Do(req)
+	resp, err := ctxhttp.Do(ctx, m.client, req)
 	if err != nil {
 		return nil, err
 	}
