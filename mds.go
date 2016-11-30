@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
@@ -71,6 +72,10 @@ func NewClient(config Config, client *http.Client) (*Client, error) {
 		client = http.DefaultClient
 	}
 
+	if !(strings.HasPrefix(config.Host, "http://") || strings.HasPrefix(config.Host, "https://")) {
+		config.Host = "http://" + config.Host
+	}
+
 	return &Client{
 		Config: config,
 
@@ -79,28 +84,28 @@ func NewClient(config Config, client *http.Client) (*Client, error) {
 }
 
 func (m *Client) uploadURL(namespace, filename string) string {
-	return fmt.Sprintf("http://%s:%d/upload-%s/%s", m.Host, m.UploadPort, namespace, filename)
+	return fmt.Sprintf("%s:%d/upload-%s/%s", m.Host, m.UploadPort, namespace, filename)
 }
 
 // ReadURL returns a URL which could be used to get data.
 func (m *Client) ReadURL(namespace, filename string) string {
-	return fmt.Sprintf("http://%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename)
+	return fmt.Sprintf("%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
 
 func (m *Client) deleteURL(namespace, filename string) string {
-	return fmt.Sprintf("http://%s:%d/delete-%s/%s", m.Host, m.UploadPort, namespace, filename)
+	return fmt.Sprintf("%s:%d/delete-%s/%s", m.Host, m.UploadPort, namespace, filename)
 }
 
 func (m *Client) pingURL() string {
-	return fmt.Sprintf("http://%s:%d/ping", m.Host, m.ReadPort)
+	return fmt.Sprintf("%s:%d/ping", m.Host, m.ReadPort)
 }
 
 func (m *Client) downloadinfoURL(namespace, filename string) string {
-	return fmt.Sprintf("http://%s:%d/downloadinfo-%s/%s", m.Host, m.ReadPort, namespace, filename)
+	return fmt.Sprintf("%s:%d/downloadinfo-%s/%s", m.Host, m.ReadPort, namespace, filename)
 }
 
 func (m *Client) getRealURL() string {
-	return fmt.Sprintf("http://%s:%d/hostname", m.Host, m.UploadPort)
+	return fmt.Sprintf("%s:%d/hostname", m.Host, m.UploadPort)
 }
 
 func (m *Client) GetReal(ctx context.Context) (string, error) {
