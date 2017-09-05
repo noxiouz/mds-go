@@ -88,8 +88,31 @@ func (m *Client) uploadURL(namespace, filename string) string {
 }
 
 // ReadURL returns a URL which could be used to get data.
-func (m *Client) ReadURL(namespace, filename string) string {
-	return fmt.Sprintf("%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename)
+func (m *Client) ReadURL(namespace, filename string, resolveRedirect bool) (string, error) {
+
+	if !resolveRedirect {
+		return fmt.Sprintf("%s:%d/get-%s/%s", m.Host, m.ReadPort, namespace, filename), nil
+	}
+
+	url := fmt.Sprintf("%s:%d/get-%s/%s?redirect=yes", m.Host, m.ReadPort, namespace, filename)
+	req, err := m.client.Head(url)
+	if err != nil {
+		return "", err
+	}
+	defer req.Body.Close()
+
+	switch req.StatusCode {
+	// 301, 302, 307, 308
+	case http.StatusTemporaryRedirect, http.StatusMovedPermanently,
+		http.StatusFound, http.StatusPermanentRedirect:
+		lv := req.Header.Get("Location")
+		if lv == "" {
+			return "", http.ErrNoLocation
+		}
+		return lv, nil
+	default:
+		return "", fmt.Errorf("unexpected code for resolving redirect %d", req.StatusCode)
+	}
 }
 
 func (m *Client) deleteURL(namespace, filename string) string {
@@ -171,7 +194,10 @@ func (m *Client) Upload(ctx context.Context, namespace string, filename string, 
 // Get reads a given key from storage and return ReadCloser to body.
 // User is responsible for closing returned ReadCloser.
 func (m *Client) Get(ctx context.Context, namespace, key string, Range ...uint64) (io.ReadCloser, error) {
-	urlStr := m.ReadURL(namespace, key)
+	urlStr, err := m.ReadURL(namespace, key, false)
+	if err != nil {
+		return nil, err
+	}
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
 		return nil, err
