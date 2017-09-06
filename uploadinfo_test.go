@@ -3,7 +3,9 @@ package mds
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -109,10 +111,28 @@ func TestUploadAndGet(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, body[rangeStart:], cfile)
 
-	_, err = cli.DownloadInfo(ctx, namespace, info.Key)
-	mErr, ok := err.(MethodError)
-	assert.True(t, ok)
-	assert.Equal(t, mErr.Status, fmt.Sprintf("%d %s", http.StatusGone, http.StatusText(http.StatusGone)))
+	// _, err = cli.DownloadInfo(ctx, namespace, info.Key)
+	// mErr, ok := err.(MethodError)
+	// assert.True(t, ok)
+	// assert.Equal(t, mErr.Status, fmt.Sprintf("%d %s", http.StatusGone, http.StatusText(http.StatusGone)))
+	rawurl, err := cli.ReadURL(ctx, namespace, info.Key, false)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, rawurl)
+	_, err = url.Parse(rawurl)
+	assert.NoError(t, err)
+
+	rawurl, err = cli.ReadURL(ctx, namespace, info.Key, true)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, rawurl)
+	_, err = url.Parse(rawurl)
+	assert.NoError(t, err)
+
+	resp, err := http.Get(rawurl)
+	assert.NoError(t, err)
+	var buff = new(bytes.Buffer)
+	io.Copy(buff, resp.Body)
+	resp.Body.Close()
+	assert.Equal(t, body, buff.Bytes())
 
 	cfile, err = cli.GetFile(ctx, namespace, info.Key, rangeStart, rangeEnd)
 	assert.NoError(t, err)
@@ -123,7 +143,7 @@ func TestUploadAndGet(t *testing.T) {
 
 	err = cli.Delete(ctx, namespace, info.Key)
 
-	mErr, ok = err.(MethodError)
+	mErr, ok := err.(MethodError)
 	assert.True(t, ok)
 	assert.Equal(t, mErr.Status, fmt.Sprintf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound)))
 }
